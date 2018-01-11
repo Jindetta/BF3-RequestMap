@@ -29,10 +29,10 @@ namespace PRoConEvents
 {
     public class CRequestMap: PRoConPluginAPI, IPRoConPluginInterface
     {
-    	#region Variables
+        #region Variables
 
-    	// General variables
-    	private int playerCount, cooldownDelay;
+        // General variables
+        private int playerCount, cooldownDelay;
         private int approveThreshold, approvalCount;
         private string requestee;
 
@@ -46,18 +46,18 @@ namespace PRoConEvents
 
         // Map variables
         private int requestedMap, nextMap;
-      	private List<MaplistEntry> currentMaps;
+          private List<MaplistEntry> currentMaps;
 
         #endregion
-		#region General functionality
+        #region General functionality
 
         private void resetVariables()
         {
-        	requestedMap = -1;
-        	approvalCount = 0;
+            requestedMap = -1;
+            approvalCount = 0;
 
-        	requestee = "";
-        	requestDelay = DateTime.MinValue;
+            requestee = "";
+            requestDelay = DateTime.MinValue;
         }
 
         public CRequestMap()
@@ -67,21 +67,21 @@ namespace PRoConEvents
             cooldownDelay = 30;
             approveThreshold = 1;
 
-           	currentMaps = new List<MaplistEntry>();
+               currentMaps = new List<MaplistEntry>();
             OnPluginDisable();
         }
 
-		public void OnServerInfo( CServerInfo serverInfo )
-		{
-			playerCount = serverInfo.PlayerCount;
-		}
+        public void OnServerInfo( CServerInfo serverInfo )
+        {
+            playerCount = serverInfo.PlayerCount;
+        }
 
         #endregion
         #region Plugin information
 
         public string GetPluginName()
         {
-        	return "Request Map";
+            return "Request Map";
         }
 
         public string GetPluginVersion()
@@ -106,8 +106,8 @@ namespace PRoConEvents
 
         public void OnPluginLoaded( string hostName, string portNr, string PRoConVersion )
         {
-			RegisterEvents( GetType().Name, "OnServerInfo", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnMaplistList", "OnMaplistGetMapIndices" );
-			pluginLogConsole( "Procedure was executed!", "RegisterEvents()" );
+            RegisterEvents( GetType().Name, "OnServerInfo", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnMaplistList", "OnMaplistGetMapIndices" );
+            pluginLogConsole( "Procedure was executed!", "RegisterEvents()" );
         }
 
         public void OnPluginEnable()
@@ -121,23 +121,23 @@ namespace PRoConEvents
             pluginEnabled = false;
             pluginLogConsole( "Procedure was executed!", "PluginDisable()" );
 
- 	       	resetVariables();
+                resetVariables();
         }
 
         private void pluginLogConsole( string message, string key )
         {
-        	switch( key.ToLower() )
-        	{
-        		case "error":
-        			key = "^8" + key;
-        		break;
-        		case "notice":
-        			key = "^2" + key;
-        		break;
-        		default:
-        			key = "^4" + key;
-        		break;
-        	}
+            switch( key.ToLower() )
+            {
+                case "error":
+                    key = "^8" + key;
+                break;
+                case "notice":
+                    key = "^2" + key;
+                break;
+                default:
+                    key = "^4" + key;
+                break;
+            }
 
             message = "^b[" + GetPluginName() + "] " + key + "^0^n: " + message;
             ExecuteCommand( "procon.protected.pluginconsole.write", message );
@@ -146,84 +146,84 @@ namespace PRoConEvents
         #endregion
         #region Plugin variables
 
-       	public List<CPluginVariable> GetDisplayPluginVariables()
-       	{
+           public List<CPluginVariable> GetDisplayPluginVariables()
+           {
             return new List<CPluginVariable>();
         }
 
         public List<CPluginVariable> GetPluginVariables()
         {
-        	return GetDisplayPluginVariables();
+            return GetDisplayPluginVariables();
         }
 
-		public void SetPluginVariable( string varName, string varValue )
-		{
-		}
+        public void SetPluginVariable( string varName, string varValue )
+        {
+        }
 
         #endregion
         #region Timer and events
 
         private void mapDelayEvent( object source, ElapsedEventArgs e )
         {
-        	if( source is Timer )
-        	{
-        		( source as Timer ).Stop();
-        		( source as Timer ).Dispose();
+            if( source is Timer )
+            {
+                ( source as Timer ).Stop();
+                ( source as Timer ).Dispose();
 
-        		if( pluginEnabled && !requestDelay.Equals( DateTime.MinValue ) )
-        		{
-	      			setMap(
-	            		currentMaps[nextMap].MapFileName,
-						currentMaps[nextMap].Gamemode
-					);
-	
-        			pluginLogConsole( "Loading requested map...", "Notice" );
-	            	ExecuteCommand( "procon.protected.send", "mapList.runNextRound" );
-        			resetVariables();
-        		}
+                if( pluginEnabled && !requestDelay.Equals( DateTime.MinValue ) )
+                {
+                      setMap(
+                        currentMaps[nextMap].MapFileName,
+                        currentMaps[nextMap].Gamemode
+                    );
+    
+                    pluginLogConsole( "Loading requested map...", "Notice" );
+                    ExecuteCommand( "procon.protected.send", "mapList.runNextRound" );
+                    resetVariables();
+                }
 
-	            ExecuteCommand( "procon.protected.send", "mapList.getMapIndices" );
-        	}
+                ExecuteCommand( "procon.protected.send", "mapList.getMapIndices" );
+            }
         }
 
         private void votingFinishedEvent( object source, ElapsedEventArgs e )
         {
-        	if( source is Timer )
-        	{
-        		( source as Timer ).Stop();
-        		( source as Timer ).Dispose();
+            if( source is Timer )
+            {
+                ( source as Timer ).Stop();
+                ( source as Timer ).Dispose();
 
-        		if( !requestDelay.Equals( DateTime.MinValue ) )
-        		{
-	        		if( pluginEnabled && approvalCount >= approveThreshold )
-	            	{
-	            		nextMap = requestedMap;
-	            		delayTimer = setTimer( mapDelayEvent, mapSwitchDelay );
-	
-	            		pluginLogConsole( "Requested map was approved...", "Notice" );
-	            		notifyAllPlayers( "Next map will load in " + mapSwitchDelay + " seconds..." );
-	            	}
-	        		else
-	        		{
-	        			if( approvalCount < approveThreshold )
-	        			{
-	        				resetVariables();
-	            			notifyAllPlayers( "Map request was not approved in time (" + approvalCount + "/" + approveThreshold + ")" );
-	        			}
-	        		}
-        		}
-        	}
+                if( !requestDelay.Equals( DateTime.MinValue ) )
+                {
+                    if( pluginEnabled && approvalCount >= approveThreshold )
+                    {
+                        nextMap = requestedMap;
+                        delayTimer = setTimer( mapDelayEvent, mapSwitchDelay );
+    
+                        pluginLogConsole( "Requested map was approved...", "Notice" );
+                        notifyAllPlayers( "Next map will load in " + mapSwitchDelay + " seconds..." );
+                    }
+                    else
+                    {
+                        if( approvalCount < approveThreshold )
+                        {
+                            resetVariables();
+                            notifyAllPlayers( "Map request was not approved in time (" + approvalCount + "/" + approveThreshold + ")" );
+                        }
+                    }
+                }
+            }
         }
 
         private Timer setTimer( ElapsedEventHandler eventHandler, int seconds )
         {
-        	Timer timer = new Timer( seconds * 1000 );
+            Timer timer = new Timer( seconds * 1000 );
 
-        	pluginLogConsole( "Procedure was executed!", "SetTimer()" );
-        	timer.Elapsed += eventHandler;
-        	timer.Start();
+            pluginLogConsole( "Procedure was executed!", "SetTimer()" );
+            timer.Elapsed += eventHandler;
+            timer.Start();
 
-        	return timer;
+            return timer;
         }
 
         #endregion
@@ -235,7 +235,7 @@ namespace PRoConEvents
             {
                 if( currentMaps[i].MapFileName.Equals( mapName ) && currentMaps[i].Gamemode.Equals( gameMode ) )
                 {
-                   	ExecuteCommand( "procon.protected.send", "mapList.setNextMapIndex", i.ToString() );
+                       ExecuteCommand( "procon.protected.send", "mapList.setNextMapIndex", i.ToString() );
                     break;
                 }
             }
@@ -243,189 +243,189 @@ namespace PRoConEvents
 
         public void OnMaplistList( List<MaplistEntry> mapList )
         {
-        	currentMaps = new List<MaplistEntry>( mapList );
-        	pluginLogConsole( "Maplist was loaded (+" + currentMaps.Count + ")!", "Notice" );
+            currentMaps = new List<MaplistEntry>( mapList );
+            pluginLogConsole( "Maplist was loaded (+" + currentMaps.Count + ")!", "Notice" );
         }
 
-		public void OnMaplistGetMapIndices( int mapIndex, int nextIndex )
-		{
-			if( requestDelay.Equals( DateTime.MinValue ) || nextMap != requestedMap )
-				nextMap = nextIndex;
-		}
+        public void OnMaplistGetMapIndices( int mapIndex, int nextIndex )
+        {
+            if( requestDelay.Equals( DateTime.MinValue ) || nextMap != requestedMap )
+                nextMap = nextIndex;
+        }
 
-		#endregion
-		#region Chat processing
+        #endregion
+        #region Chat processing
 
-		private void notifyAllPlayers( string message )
-		{
-			ExecuteCommand( "procon.protected.send", "admin.say", message, "all" );
-		}
+        private void notifyAllPlayers( string message )
+        {
+            ExecuteCommand( "procon.protected.send", "admin.say", message, "all" );
+        }
 
-		private void notifyPlayer( string message, string player )
-		{
-			ExecuteCommand( "procon.protected.send", "admin.say", message, "player", player );
-		}
+        private void notifyPlayer( string message, string player )
+        {
+            ExecuteCommand( "procon.protected.send", "admin.say", message, "player", player );
+        }
 
-		private string gameModeToShort( string gameMode )
-		{
-			switch( gameMode )
-			{
-                case "ConquestLarge0":			return "[CQ]";
-                case "ConquestSmall0":			return "[CQ]";
-                case "ConquestAssaultSmall0":	return "[CQA]";
-                case "ConquestAssaultSmall1":	return "[CQA]";
-                case "ConquestAssaultLarge0":	return "[CQA]";
-                case "Domination0":				return "[CQDOM]";
-                case "RushLarge0":				return "[RUSH]";
-                case "SquadRush0":				return "[SQRUSH]";
-                case "SquadDeathMatch0":		return "[SQDM]";
-                case "TeamDeathMatch0":			return "[TDM]";
-                case "TeamDeathMatchC0":		return "[TDM]";
-                case "TankSuperiority0":		return "[TS]";
-                case "Scavenger0":				return "[SC]";
-                case "CaptureTheFlag0":			return "[CTF]";
-                case "AirSuperiority0":			return "[AS]";
-                case "GunMaster0":				return "[GM]";
-			}
+        private string gameModeToShort( string gameMode )
+        {
+            switch( gameMode )
+            {
+                case "ConquestLarge0":            return "[CQ]";
+                case "ConquestSmall0":            return "[CQ]";
+                case "ConquestAssaultSmall0":    return "[CQA]";
+                case "ConquestAssaultSmall1":    return "[CQA]";
+                case "ConquestAssaultLarge0":    return "[CQA]";
+                case "Domination0":                return "[CQDOM]";
+                case "RushLarge0":                return "[RUSH]";
+                case "SquadRush0":                return "[SQRUSH]";
+                case "SquadDeathMatch0":        return "[SQDM]";
+                case "TeamDeathMatch0":            return "[TDM]";
+                case "TeamDeathMatchC0":        return "[TDM]";
+                case "TankSuperiority0":        return "[TS]";
+                case "Scavenger0":                return "[SC]";
+                case "CaptureTheFlag0":            return "[CTF]";
+                case "AirSuperiority0":            return "[AS]";
+                case "GunMaster0":                return "[GM]";
+            }
 
-			return "";
-		}
+            return "";
+        }
 
-		private string getMapInfo( int index, bool onlyMapName )
-		{
-			if( currentMaps.Count > 0 && ( index >= 0 && index < currentMaps.Count ) )
-			{
-				string mapName = GetMapByFilename( currentMaps[index].MapFileName ).PublicLevelName;
-         		if( onlyMapName ) return mapName;
+        private string getMapInfo( int index, bool onlyMapName )
+        {
+            if( currentMaps.Count > 0 && ( index >= 0 && index < currentMaps.Count ) )
+            {
+                string mapName = GetMapByFilename( currentMaps[index].MapFileName ).PublicLevelName;
+                 if( onlyMapName ) return mapName;
 
-         		string modeName = gameModeToShort( currentMaps[index].Gamemode );
-         		return mapName + " " + modeName;
-			}
+                 string modeName = gameModeToShort( currentMaps[index].Gamemode );
+                 return mapName + " " + modeName;
+            }
 
-			return "";
-		}
+            return "";
+        }
 
         private void getChatMessage( string playerName, string chatMessage )
         {
-        	Match regex;
-        	if( requestTime.CompareTo( DateTime.Now ) < 0 )
-        		requestTime = DateTime.Now;
+            Match regex;
+            if( requestTime.CompareTo( DateTime.Now ) < 0 )
+                requestTime = DateTime.Now;
 
-        	regex = Regex.Match( chatMessage, @"^[!|/]maps" );
+            regex = Regex.Match( chatMessage, @"^[!|/]maps" );
             if( regex.Success )
             {
-            	pluginLogConsole( "Show maplist...", "Notice" );
-            	if( currentMaps != null && currentMaps.Count > 0 )
-            	{
-            		notifyPlayer( "*** Available maps to request ***", playerName );
-            		for( int i = 0; i < currentMaps.Count; i++ )
-            		{
-            			notifyPlayer( "* !request " + i + ": " + getMapInfo( i, false ), playerName );
-            		}
+                pluginLogConsole( "Show maplist...", "Notice" );
+                if( currentMaps != null && currentMaps.Count > 0 )
+                {
+                    notifyPlayer( "*** Available maps to request ***", playerName );
+                    for( int i = 0; i < currentMaps.Count; i++ )
+                    {
+                        notifyPlayer( "* !request " + i + ": " + getMapInfo( i, false ), playerName );
+                    }
 
-            		return;
-            	}
+                    return;
+                }
 
-            	notifyPlayer( "There is currently no maps in playlist!", playerName );
+                notifyPlayer( "There is currently no maps in playlist!", playerName );
             }
 
-        	regex = Regex.Match( chatMessage, @"^[!|/]request (\d|[a-z A-Z]+)" );
+            regex = Regex.Match( chatMessage, @"^[!|/]request (\d|[a-z A-Z]+)" );
             if( requestDelay.Equals( DateTime.MinValue ) && regex.Success )
             {
-            	pluginLogConsole( "New request...", "Notice" );
-            	resetVariables();
+                pluginLogConsole( "New request...", "Notice" );
+                resetVariables();
 
-            	requestedMap = -1;
-            	string[] keys = regex.Groups[regex.Groups.Count - 1].Value.Split( ' ' );
+                requestedMap = -1;
+                string[] keys = regex.Groups[regex.Groups.Count - 1].Value.Split( ' ' );
 
-            	if( currentMaps.Count > 0 && keys.Length > 0 )
-            	{
-	            	if( Regex.IsMatch( keys[0], @"^\d$" ) )
-	            	{
-	            		requestedMap = Convert.ToInt32( keys[0] );
-	            	}
-	            	else
-	            	{
-	            		for( int i = 0; i < currentMaps.Count; i++ )
-	            		{
-	            			string mapName = getMapInfo( i, true ).ToLower();
+                if( currentMaps.Count > 0 && keys.Length > 0 )
+                {
+                    if( Regex.IsMatch( keys[0], @"^\d$" ) )
+                    {
+                        requestedMap = Convert.ToInt32( keys[0] );
+                    }
+                    else
+                    {
+                        for( int i = 0; i < currentMaps.Count; i++ )
+                        {
+                            string mapName = getMapInfo( i, true ).ToLower();
 
-	            			for( int j = 0; j < keys.Length; j++ )
-	            			{
-	            				if( mapName.Contains( keys[j].ToLower() ) )
-	            				{
-	            					requestedMap = i;
-	            					break;
-	            				}
-	            			}
+                            for( int j = 0; j < keys.Length; j++ )
+                            {
+                                if( mapName.Contains( keys[j].ToLower() ) )
+                                {
+                                    requestedMap = i;
+                                    break;
+                                }
+                            }
 
-	            			if( requestedMap != -1 )
-	            				break;
-	            		}
-	            	}
-            	}
+                            if( requestedMap != -1 )
+                                break;
+                        }
+                    }
+                }
 
-            	if( requestTime.CompareTo( DateTime.Now ) <= 0 )
-            	{
-            		if( requestedMap >= 0 && requestedMap < currentMaps.Count )
-            		{
-		            	requestee = playerName;
-		            	requestTime = DateTime.Now.AddSeconds( cooldownDelay );
-		            	requestDelay = DateTime.Now.AddSeconds( voteDuration );
-		            	notifyAllPlayers( playerName + " requested " + getMapInfo( requestedMap, false ) );
-		            	durationTimer = setTimer( votingFinishedEvent, voteDuration );
+                if( requestTime.CompareTo( DateTime.Now ) <= 0 )
+                {
+                    if( requestedMap >= 0 && requestedMap < currentMaps.Count )
+                    {
+                        requestee = playerName;
+                        requestTime = DateTime.Now.AddSeconds( cooldownDelay );
+                        requestDelay = DateTime.Now.AddSeconds( voteDuration );
+                        notifyAllPlayers( playerName + " requested " + getMapInfo( requestedMap, false ) );
+                        durationTimer = setTimer( votingFinishedEvent, voteDuration );
 
-		            	return;
-            		}
+                        return;
+                    }
 
-           			notifyPlayer( "Requested map was not found!", playerName );
-        			return;
-            	}
+                       notifyPlayer( "Requested map was not found!", playerName );
+                    return;
+                }
 
-        		notifyPlayer( "Please wait a moment before new request!", playerName );
+                notifyPlayer( "Please wait a moment before new request!", playerName );
             }
 
             regex = Regex.Match( chatMessage, @"^[!|/]approve" );
             if( !requestDelay.Equals( DateTime.MinValue ) && regex.Success )
             {
-            	pluginLogConsole( "Approve request...", "Notice" );
+                pluginLogConsole( "Approve request...", "Notice" );
 
-            	if( requestDelay.CompareTo( DateTime.Now ) >= 0 )
-            	{
-	            	if( playerName.Equals( requestee ) && playerCount != approveThreshold )
-	            	{
-	            		notifyPlayer( "You cannot approve your own request!", playerName );
-	            		return;
-	            	}
+                if( requestDelay.CompareTo( DateTime.Now ) >= 0 )
+                {
+                    if( playerName.Equals( requestee ) && playerCount != approveThreshold )
+                    {
+                        notifyPlayer( "You cannot approve your own request!", playerName );
+                        return;
+                    }
 
-	            	notifyAllPlayers(  "Request was approved by " + playerName );
-	            	approvalCount++;
+                    notifyAllPlayers(  "Request was approved by " + playerName );
+                    approvalCount++;
 
-	            	return;
-            	}
+                    return;
+                }
 
-            	notifyPlayer( "There is no ongoing map request!", playerName );
+                notifyPlayer( "There is no ongoing map request!", playerName );
             }
 
             regex = Regex.Match( chatMessage, @"^[!|/]abort" );
             if( !requestDelay.Equals( DateTime.MinValue ) && regex.Success )
             {
-            	pluginLogConsole( "Abort request...", "Notice" );
-            	if( playerName.Equals( requestee ) )
-            	{
-            		resetVariables();
-            		notifyAllPlayers( "Request was aborted by " + playerName );
+                pluginLogConsole( "Abort request...", "Notice" );
+                if( playerName.Equals( requestee ) )
+                {
+                    resetVariables();
+                    notifyAllPlayers( "Request was aborted by " + playerName );
 
-            		durationTimer.Stop();
-            		durationTimer.Dispose();
+                    durationTimer.Stop();
+                    durationTimer.Dispose();
 
-            		delayTimer.Stop();
-            		delayTimer.Dispose();
+                    delayTimer.Stop();
+                    delayTimer.Dispose();
 
-            		return;
-            	}
+                    return;
+                }
 
-            	notifyPlayer( "You didn't create current request!", playerName );
+                notifyPlayer( "You didn't create current request!", playerName );
             }
         }
 
